@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login</title>
+   
+</head>
+<body>
+    <form action="/login" method="post">
+        <h2>Login</h2>
+        <input type="text" name="user_username" >
+        <input type="text" name="user_password" >
+        <input type="text" name="user_email" >
+        <button type="submit">LOL</button>
+    </form>
+    <% 
+            if (locals.login_errors) {
+                login_errors.forEach(function(error_msg) {  %>
+
+                    <div role="alert"><%= error_msg %></div>
+
+            <%   })
+            }
+        %>
+
+    <form action="/register" method="post">
+        <h2>registration</h2>
+        <input type="text" name="user_username" value=" 
+        <%= (locals.old_data) ? old_data.user_username : '' %> 
+        "  >
+        <input type="text" name="user_password" >
+        <input type="text" name="user_email" value=" 
+        <%= (locals.old_data) ? old_data.user_email : '' %> 
+        "  >
+
+        <% 
+            if (locals.register_error) {
+                register_error.forEach(function(error_msg) {  %>
+
+                    <div role="alert"><%= error_msg %></div>
+
+            <%   })
+            }
+        %>
+        <button type="submit">LOL</button>
+    </form>
+</body>
+</html>

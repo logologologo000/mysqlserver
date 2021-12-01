@@ -223,7 +223,7 @@ app.get('/getreqsstatus2', (req, res) => {
 
 //get all reqs with status 0 and 1
 app.get('/getreqsstatus', (req, res) => {
-    connection.execute('SELECT * FROM requests WHERE status IN (  0 , 1 ) ').then(([result]) => {
+    connection.execute('SELECT rq.* , us.code FROM requests as rq left join users as us on us.user_id = rq.user_id WHERE rq.status IN (  0 , 1 ) ').then(([result]) => {
         console.log('Get all is done')
         
         res.status(200).json(result).end()
@@ -687,6 +687,72 @@ app.delete('/deletenotice/:notice_id', (req, res) => {
         res.status(200).send('Success').end()
     })
 })
+
+///////////////////////////////////////// ANSWER ////////////////////////////////////////////////////
+
+
+//get answer by id
+app.get('/getans/:id' , (req, res) => {
+    const answer_id = req.params.id
+    connection.execute('SELECT * FROM answers where answer_id = ?' , [answer_id]).then(([result]) => {
+        res.status(200).send(result).end()
+    })
+    
+
+})
+
+//get all answers
+app.get('/getallans' , (req, res) => {
+    
+    connection.execute('SELECT * FROM answers').then(([result]) => {
+        res.status(200).send(result).end()
+    })
+    
+
+})
+
+// create answer
+app.post('/createans' , (req, res) => {
+    const answer_detail = req.body.detail
+    const answer_title = req.body.title
+    console.log(answer_detail)
+    console.log(answer_title)
+    if (answer_title == '' || answer_title == '') {
+        res.status(250).send("please type something").end();
+    } else {
+
+        connection.execute('Insert INTO answers (answer_detail, answer_title) VALUES (?,?)', 
+        [answer_detail, answer_title ]).then(()=> {
+            res.status(200).send("success").end();
+        })
+    }
+})
+
+//edit answer by id
+app.post('/editans', (req, res) => {
+    const answer_detail = req.body.answer_detail
+    const answer_title = req.body.answer_title
+    const answer_id = req.body.answer_id
+
+        connection.execute('UPDATE answers SET answer_title = ? , answer_detail = ? WHERE answer_id = ?',
+        [answer_title, answer_detail ,answer_id]).then(() => {
+
+        res.send('Success') 
+        return res.end
+     })
+    
+})
+
+
+// delete answer by id
+app.get('/deleteans/:answer_id', (req, res) => {
+
+    const answer_id = req.params.answer_id
+    connection.execute('DELETE FROM answers WHERE answer_id = ?', [answer_id]).then(() => {
+        res.status(200).send('Success').end()
+    })
+})
+
 
 
 

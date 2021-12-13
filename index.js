@@ -6,6 +6,7 @@ const bcrypt = require('bcrypt')
 const connection = require('./database');
 const { body, validatorResult, validationResult } = require('express-validator')
 
+
 const sessions = require('express-session');
 const bodyParser = require('body-parser');
 const { response } = require('express');
@@ -68,12 +69,16 @@ app.post('/setstatusreq', (req, res) => {
 app.delete('/deletereq/:request_id', (req, res) => {
     const request_id = req.params.request_id
 
-
-    connection.execute('SELECT img FROM requests WHERE request_id = ?', [request_id])
+    try {
+        connection.execute('SELECT img FROM requests WHERE request_id = ?', [request_id])
         .then(([result]) => {
             console.log(result[0].img)
             fs.unlink(`${__dirname}/../client/public/uploads/${result[0].img}`, () => {console.log("Delete")})
         })
+    } catch (err) {
+
+    }
+    
 
     connection.execute('DELETE FROM requests WHERE request_id = ?', [request_id])
     .then(() => {
@@ -170,7 +175,12 @@ app.post('/createreq', (req, res) => {
         res.json({ fileName: file.name, filePath: `/uploads/${file.name}`})
     })
     
-    connection.execute('INSERT INTO requests (user_id , img , detail ,port ,title ) VALUES (?, ?, ? , ?, ?)', [id , file.name ,detail , port, title])
+    var to = new Date()
+    var x = to.getHours() + 7
+    console.log(x)
+    to.setHours(x)
+    connection.execute('INSERT INTO requests (user_id , img , detail ,port ,title, createdate ) VALUES (?, ?, ? , ?, ? , ?)', [id , file.name ,detail , port, title , to])
+
     
     
 })
@@ -476,6 +486,9 @@ app.post('/edituser/:user_id', [
         .then(([rows]) => {
             if (rows.length > 0) {
                 if (rows[0].code != req.body.old_code) { 
+                    console.log(rows[0].code)
+                    console.log(req.body.old_code)
+                    
                     console.log('This code already exsit')
                     return Promise.reject('This code already exsit')
                 }
@@ -509,6 +522,7 @@ app.post('/edituser/:user_id', [
 
         const validation_result = validationResult(req)
         console.log(validation_result.isEmpty())
+       
         
         
         if ( validation_result.isEmpty() ) {
@@ -677,15 +691,23 @@ app.post('/createnotice', (req, res) => {
 //delete notice by notice_id
 app.delete('/deletenotice/:notice_id', (req, res) => {
     const notice_id = req.params.notice_id
+    
+    try {
+            connection.execute('SELECT img FROM notices WHERE notice_id = ?', [notice_id])
+                .then(([result]) => {
+                    
+                    fs.unlink(`${__dirname}/../client/public/uploads/notice/${result[0].img}`, () => {console.log("Delete")})
+                })
+    } catch (err) {
 
-    connection.execute('SELECT img FROM notices WHERE notice_id = ?', [notice_id])
-        .then(([result]) => {
-            console.log(result[0].img)
-            fs.unlink(`${__dirname}/../client/public/uploads/notice/${result[0].img}`, () => {console.log("Delete")})
-        })
+    }
+    
+
     connection.execute('DELETE FROM notices WHERE notice_id = ?', [notice_id]).then(() => {
         res.status(200).send('Success').end()
     })
+
+
 })
 
 ///////////////////////////////////////// ANSWER ////////////////////////////////////////////////////
@@ -717,7 +739,7 @@ app.post('/createans' , (req, res) => {
     const answer_title = req.body.title
     console.log(answer_detail)
     console.log(answer_title)
-    if (answer_title == '' || answer_title == '') {
+    if (answer_title == '' || answer_detail == '') {
         res.status(250).send("please type something").end();
     } else {
 
@@ -725,6 +747,7 @@ app.post('/createans' , (req, res) => {
         [answer_detail, answer_title ]).then(()=> {
             res.status(200).send("success").end();
         })
+
     }
 })
 
@@ -753,9 +776,131 @@ app.get('/deleteans/:answer_id', (req, res) => {
     })
 })
 
+//////////////////////////////////////// SET DATETIME ////////////////////////////////////////////////////
+
+// get Createdate in reqs by id
+app.get('/createdatereq/:req_id', (req, res) => {
+
+    try{
+        const req_id = req.params.req_id
+        
+        connection.execute('select createdate from requests where request_id = ?', [req_id]).then(([result]) => {
+
+            var stamp = JSON.stringify(result)
+            var date = stamp.substring(26,16)
+            var time = stamp.substring(35,27)
+            var datetime = `${date}T${time}`
+            
+            console.log(result)
+            
+            
+        
 
 
+            res.status(200).send({date: date, time: time}).end()
+    })
 
+    }catch(err){
+        console.log(err)
+    }
+    
+})
+
+
+// get timpstamp in reqs by id
+app.get('/timestampreq/:req_id', (req, res) => {
+
+    try{
+        const req_id = req.params.req_id
+        
+        connection.execute('select timestamp from requests where request_id = ?', [req_id]).then(([result]) => {
+
+            var stamp = JSON.stringify(result)
+            var date = stamp.substring(25,15)
+            var time = stamp.substring(34,26)
+            var datetime = `${date}T${time}`
+            //to.setHours(to.getHours())
+            console.log(datetime)
+            
+            
+        
+
+
+            res.status(200).send({date: date, time: time}).end()
+    })
+    } catch (err) {
+
+    }
+
+    })
+//////////////////////////////////////// subject  ////////////////////////////////////////////////////
+
+//get all subjects
+app.get('/subjects' , (req, res) => {
+
+    connection.execute('SELECT * FROM subjects').then(([result]) => {
+        res.status(200).send(result).end()
+    })
+
+})
+
+//get subject by id
+app.get('/subject/:id' , (req, res) => {
+    const id = req.params.id
+    connection.execute('SELECT * FROM subjects WHERE subject_id = ?' , [id]).then(([result]) => {
+        res.status(200).send(result).end()
+    })
+
+})
+
+//create subject
+app.post('/createsub' , (req, res) => {
+
+    const name = req.body.subject_name
+    const code = req.body.subject_code
+
+    if (name == '' || code == '') {
+        res.status(250).send("please type something").end();
+    } else {
+
+        connection.execute('Insert INTO subjects (subject_name, subject_code) VALUES (?,?)', 
+        [name, code ]).then(()=> {
+            res.status(200).send("success").end();
+        })
+        
+    }
+    
+
+})
+
+//edit subject by id
+app.post('/editsub/:subject_id' , (req, res) => {
+
+    const name = req.body.subject_name
+    const code = req.body.subject_code
+    const id = req.params.subject_id
+
+    
+
+    connection.execute('UPDATE subjects SET subject_code = ? , subject_name = ? WHERE subject_id = ?', 
+        [code, name , id ]).then(()=> {
+            res.status(200).send("success").end();
+        }
+    )
+        
+    
+    
+
+})
+
+// delete subject by id
+app.get('/deletesub/:subject_id', (req, res) => {
+
+    const id = req.params.subject_id
+    connection.execute('DELETE FROM subjects WHERE subject_id = ?', [id]).then(() => {
+        res.status(200).send('Success').end()
+    })
+})
 
 //////////////////////////////////////// SERVER ////////////////////////////////////////////////////
 
